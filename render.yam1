@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: thamai-backend
+    env: python
+    buildCommand: ""
+    startCommand: "python app.py"
