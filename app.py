@@ -1,60 +1,52 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from dotenv import load_dotenv
 import openai
 import os
-import traceback
+from dotenv import load_dotenv
 
-# Nạp biến môi trường từ file .env (chỉ dùng khi chạy local)
+# 1. Nạp biến môi trường từ file .env
 load_dotenv()
 
-# Lấy API key từ biến môi trường
+# 2. Khởi tạo Flask app
+app = Flask(__name__)
+CORS(app)  # Cho phép mọi nguồn frontend kết nối
+
+# 3. Thiết lập khóa API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Khởi tạo Flask app
-app = Flask(__name__)
+# 4. Route kiểm tra server hoạt động
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "✅ ThamAI backend is running."})
 
-# Cho phép frontend gọi API (có thể thêm nhiều origin nếu cần)
-CORS(app, origins=[
-    "https://thach-ai-frontend-fresh.vercel.app",
-    "https://thach-ai-frontend-fresh-2gh5quauy-thamktm155s-projects.vercel.app"
-])
-
+# 5. Route xử lý chat từ frontend
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
-        # Lấy dữ liệu JSON từ request
         data = request.get_json()
-        if not data or "message" not in data:
-            return jsonify({"response": "⚠️ Không nhận được tin nhắn."}), 400
+        user_message = data.get("message", "")
 
-        message = data["message"]
+        if not user_message:
+            return jsonify({"error": "No message provided"}), 400
 
-        # Kiểm tra API key trước khi gọi OpenAI
-        if not openai.api_key:
-            return jsonify({"response": "⚠️ Thiếu API key của OpenAI trên server."}), 500
-
-        # Gọi API OpenAI
+        # Gọi OpenAI API (GPT-4o-mini cho nhanh & tiết kiệm)
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Bạn là trợ lý ảo ThamAI"},
-                {"role": "user", "content": message}
-            ]
+                {"role": "system", "content": "Bạn là ThamAI, trợ lý ảo hỗ trợ người dùng."},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=200,
+            temperature=0.7
         )
 
-        # Lấy câu trả lời
-        reply = response.choices[0].message.content.strip()
-        return jsonify({"response": reply})
+        ai_reply = response.choices[0].message["content"].strip()
+
+        return jsonify({"reply": ai_reply})
 
     except Exception as e:
-        # In lỗi ra log Render để dễ debug
-        print("❌ Lỗi khi xử lý yêu cầu:", e)
-        print(traceback.format_exc())
-        return jsonify({"response": f"⚠️ Lỗi server: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-
+# 6. Chạy ứng dụng ở chế độ debug khi chạy cục bộ
 if __name__ == "__main__":
-    # Chạy local
-    app.run(host="0.0.0.0", port=5000)
-
+    app.run(host="0.0.0.0", port=5000, debug=True)
