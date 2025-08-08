@@ -16,7 +16,7 @@ CORS(app, resources={
     r"/*": {
         "origins": [
             "https://thach-ai-frontend-fresh.vercel.app",
-            "https://thach-ai-frontend-fresh-ub7q-7gxu3puj2-thamktm155s-projects.vercel.app"
+            "https://thach-ai-frontend-fresh-2gh5quauy-thamktm155s-projects.vercel.app"
         ]
     }
 })
