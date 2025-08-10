@@ -7,19 +7,21 @@ from dotenv import load_dotenv
 # 1. Nạp biến môi trường từ file .env
 load_dotenv()
 
-# 2. Lấy API key từ biến môi trường
+# 2. Khởi tạo Flask app
+app = Flask(__name__)
+
+# ✅ Mở toàn quyền CORS (mọi domain đều gọi được)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# 3. Thiết lập khóa API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# 3. Khởi tạo Flask app + bật CORS cho tất cả domain
-app = Flask(__name__)
-CORS(app)  # Cho phép mọi domain gọi backend
-
-# 4. Route kiểm tra server
+# 4. Route kiểm tra server hoạt động
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "✅ ThamAI backend is running."})
 
-# 5. Route chat
+# 5. Route xử lý chat từ frontend
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -29,14 +31,14 @@ def chat():
         if not user_message:
             return jsonify({"error": "⚠️ Bạn chưa nhập tin nhắn."}), 400
 
-        # Gọi API OpenAI
+        # Gọi OpenAI API
         response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
+            model="gpt-4o-mini",  # Model mới, nhanh & tiết kiệm
             messages=[
                 {"role": "system", "content": "Bạn là ThamAI, trợ lý ảo hỗ trợ người dùng."},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=200,
+            max_tokens=500,
             temperature=0.7
         )
 
@@ -44,10 +46,10 @@ def chat():
         return jsonify({"reply": ai_reply})
 
     except Exception as e:
-        # Log lỗi chi tiết vào console
-        print("❌ Lỗi khi gọi OpenAI API:", str(e))
-        return jsonify({"error": "⚠️ Đã xảy ra lỗi khi xử lý yêu cầu."}), 500
+        print(f"❌ Lỗi khi xử lý /chat: {str(e)}")  # Log lỗi chi tiết
+        return jsonify({"error": str(e)}), 500
 
-# 6. Chạy ứng dụng khi local
+
+# 6. Chạy ứng dụng ở chế độ debug khi chạy cục bộ
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
