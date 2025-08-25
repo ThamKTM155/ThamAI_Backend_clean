@@ -10,35 +10,37 @@ load_dotenv()
 # 2. Khởi tạo Flask app
 app = Flask(__name__)
 
-<<<<<<< HEAD
 # ✅ Mở toàn quyền CORS (mọi domain đều gọi được)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # 3. Thiết lập khóa API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
-=======
+
+# Chỉ cho phép frontend chính thức gọi backend
+CORS(app, origins=["https://thach-ai-frontend-fresh.vercel.app"])
+
 # Chỉ cho phép frontend chính thức gọi backend
 CORS(app, origins=["https://thach-ai-frontend-fresh.vercel.app"])
 
 # Khởi tạo client OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
->>>>>>> 4e7ef1f (ThamAI_Backend_clean)
+
+# Khởi tạo client OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 4. Route kiểm tra server hoạt động
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "✅ ThamAI backend is running."})
 
-<<<<<<< HEAD
-# 5. Route xử lý chat từ frontend
-=======
+5. Route xử lý chat từ frontend
 # ✅ Route chính xử lý chat
->>>>>>> 4e7ef1f (ThamAI_Backend_clean)
+
+# ✅ Route chính xử lý chat
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
-<<<<<<< HEAD
-        data = request.get_json()
+data = request.get_json()
         user_message = data.get("message", "").strip()
 
         if not user_message:
@@ -64,7 +66,6 @@ def chat():
 
 
 # 6. Chạy ứng dụng ở chế độ debug khi chạy cục bộ
-=======
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": user_message}]
@@ -76,6 +77,6 @@ def chat():
         return jsonify({"response": "⚠️ Đã xảy ra lỗi khi gọi OpenAI."})
 
 # Khởi chạy ứng dụng Flask
->>>>>>> 4e7ef1f (ThamAI_Backend_clean)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
