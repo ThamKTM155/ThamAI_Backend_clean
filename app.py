@@ -9,6 +9,7 @@ load_dotenv()
 
 # 2. Khởi tạo Flask app
 app = Flask(__name__)
+CORS(app, origins="*")  # Cho phép tất cả domain
 
 # ⚠️ Nếu muốn chặt chẽ thì thay "*" bằng domain frontend của anh:
 #    "https://thach-ai-frontend-fresh.vercel.app"
@@ -41,13 +42,10 @@ def chat():
         return jsonify({"error": "⚠️ Bạn chưa nhập tin nhắn."}), 400
 
     try:
-        resp = client.chat.completions.create(
+       resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": "Bạn là ThamAI, trợ lý ảo thân thiện, nói tiếng Việt."
-                },
+                {"role": "system", "content": "Bạn là ThamAI, trợ lý ảo thân thiện, nói tiếng Việt."},
                 {"role": "user", "content": user_message},
             ],
             temperature=0.7,
