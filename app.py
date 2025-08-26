@@ -22,8 +22,20 @@ CORS(app, origins=["https://thach-ai-frontend-fresh.vercel.app"])
 # Chỉ cho phép frontend chính thức gọi backend
 CORS(app, origins=["https://thach-ai-frontend-fresh.vercel.app"])
 
-# Khởi tạo client OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 1. Load biến môi trường từ file .env
+load_dotenv()
+
+# 2. Khởi tạo Flask app
+app = Flask(__name__)
+
+# Cho phép gọi API từ bất kỳ domain nào (cần thiết khi test từ local & Vercel)
+CORS(app, resources={r"/*": {"origins": "*"}})
+204ed2e (app.py)
+
+# 3. Kết nối OpenAI client
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("❌ Thiếu OPENAI_API_KEY trong file .env")
 
 # Khởi tạo client OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -69,14 +81,55 @@ data = request.get_json()
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": user_message}]
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# 4. Định nghĩa API routes
+@app.route("/", methods=["GET"])
+def home():
+    """Kiểm tra backend có chạy không"""
+    return jsonify({"message": "✅ ThamAI backend is running."})
+
+@app.route("/test", methods=["GET"])
+def test():
+    """Test endpoint đơn giản"""
+    return jsonify({"message": "⚡ Test OK"})
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    """API chính để người dùng gửi tin nhắn đến ThamAI"""
+    data = request.get_json(silent=True) or {}
+
+    # Lấy nội dung người dùng gửi
+    user_message = (data.get("message") or "").strip()
+    if not user_message:
+        return jsonify({"error": "⚠️ Bạn chưa nhập tin nhắn."}), 400
+
+    try:
+        # Gọi API OpenAI
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",  # Model nhỏ, rẻ, phù hợp realtime
+            messages=[
+                {"role": "system", "content": "Bạn là ThamAI, trợ lý ảo thân thiện, hữu ích, nói tiếng Việt."},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=0.7,
+            max_tokens=500,
         )
-        reply = response.choices[0].message.content.strip()
-        return jsonify({"response": reply})
-    except Exception as e:
-        print("❌ Lỗi gọi OpenAI:", e)
-        return jsonify({"response": "⚠️ Đã xảy ra lỗi khi gọi OpenAI."})
 
 # Khởi chạy ứng dụng Flask
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+        # Lấy phản hồi từ OpenAI
+        reply = resp.choices[0].message.content.strip()
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        # In lỗi ra console để dễ debug (ví dụ lỗi quota, key sai)
+        print("❌ OpenAI error:", str(e))
+        return jsonify({"error": f"Lỗi OpenAI: {str(e)}"}), 500
+
+# 5. Run server (chỉ chạy khi ở local, không áp dụng Render)
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
