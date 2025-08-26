@@ -9,7 +9,10 @@ load_dotenv()
 
 # 2. Khởi tạo Flask app
 app = Flask(__name__)
-CORS(app)  # tạm mở tất cả domain để test
+
+# ⚠️ Nếu muốn chặt chẽ thì thay "*" bằng domain frontend của anh:
+#    "https://thach-ai-frontend-fresh.vercel.app"
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # 3. Khởi tạo OpenAI client
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -33,23 +36,32 @@ def test():
 def chat():
     data = request.get_json(silent=True) or {}
     user_message = (data.get("message") or "").strip()
+
     if not user_message:
         return jsonify({"error": "⚠️ Bạn chưa nhập tin nhắn."}), 400
+
     try:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Bạn là ThamAI, trợ lý ảo thân thiện, nói tiếng Việt."},
+                {
+                    "role": "system",
+                    "content": "Bạn là ThamAI, trợ lý ảo thân thiện, nói tiếng Việt."
+                },
                 {"role": "user", "content": user_message},
             ],
             temperature=0.7,
             max_tokens=500,
         )
+
         reply = resp.choices[0].message.content.strip()
         return jsonify({"reply": reply})
+
     except Exception as e:
         print("❌ OpenAI error:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# 7. KHÔNG để app.run() khi deploy Render
-# Render sẽ tự boot Gunicorn
+
+# 7. Khi chạy local thì bật app.run(), còn khi deploy Render thì KHÔNG bật
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
